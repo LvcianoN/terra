@@ -106,12 +106,12 @@ function App() {
       />
 
       {/* Let's give some credit */}
-      <p>
-        Luciano's Lab
-      </br>
-        Spinning thing by <a href="https://cobe.vercel.app/">🌏 Cobe</a>,{" "}
-      
-      </p>
+    <p>
+  Luciano's Lab
+  <br />
+  Spinning thing by <a href="https://cobe.vercel.app/">Cobe</a>,{" "}
+</p>
+
     </div>
   );
 }
