@@ -1,3 +1,4 @@
+// ui4
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -8,7 +9,8 @@ import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
 function App() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // match the original working pattern
+  const canvasRef = useRef<HTMLCanvasElement>();
   const [counter, setCounter] = useState(0);
 
   const positions = useRef<
@@ -34,63 +36,39 @@ function App() {
   });
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    // physical pixel size of the canvas, UI scales with CSS below
-    const DPR = Math.min(window.devicePixelRatio || 1, 2);
-    const BASE = 400; // CSS size
-    const PX = Math.floor(BASE * DPR); // backing store size
-
+    // keep the working behavior, only adjust visuals
     let phi = 0;
 
-    const globe = createGlobe(canvas, {
-      devicePixelRatio: DPR,
-      width: PX,
-      height: PX,
+    const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
+      devicePixelRatio: 2,
+      width: 400 * 2,
+      height: 400 * 2,
       phi: 0,
       theta: 0,
       dark: 1,
-      diffuse: 1.4,
+      diffuse: 1.2,
       mapSamples: 16000,
-      mapBrightness: 5,            // brighter so it is visible
-      baseColor: [0.12, 0.36, 0.72], // rich blue
-      markerColor: [0.0, 0.9, 1.0],  // cyan markers
-      glowColor: [0.25, 0.65, 1.0],  // cyan glow
-      opacity: 0.9,
+      mapBrightness: 5,                 // a bit brighter than stock
+      baseColor: [0.12, 0.36, 0.72],    // rich blue base
+      markerColor: [0.0, 0.9, 1.0],     // cyan markers
+      glowColor: [0.25, 0.65, 1.0],     // cyan glow
+      markers: [],                      // important for first frame
+      opacity: 0.85,
       onRender: (state) => {
-        // keep size in sync every frame
-        state.width = PX;
-        state.height = PX;
-
-        // markers guard
-        state.markers =
-          positions.current && positions.current.size
-            ? Array.from(positions.current.values())
-            : [];
-
+        // supply markers every frame, same as original logic
+        state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += 0.008;
+        phi += 0.008; // slightly slower, smooth rotation
       },
     });
 
-    // handle window resize
-    const onResize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const px = Math.floor(BASE * dpr);
-      canvas.width = px;
-      canvas.height = px;
-    };
-    window.addEventListener("resize", onResize);
-
     return () => {
-      window.removeEventListener("resize", onResize);
       globe.destroy();
     };
   }, []);
 
   return (
-    <div className="App" style={{ textAlign: "center", color: "#ddd" }}>
+    <div className="App">
       <h1>Where's everyone at?</h1>
 
       {counter !== 0 ? (
@@ -101,22 +79,14 @@ function App() {
         <p>&nbsp;</p>
       )}
 
-      {/* Important: give the canvas real pixel dimensions via attributes */}
+      {/* Canvas for the globe */}
       <canvas
         ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-        width={800}           // backing store, will be overridden on mount
-        height={800}
-        style={{
-          width: 400,         // CSS size on the page
-          height: 400,
-          maxWidth: "100%",
-          aspectRatio: 1,
-          display: "block",
-          margin: "0 auto",
-        }}
+        style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
       />
 
-      <p style={{ marginTop: "1em", color: "#aaa", fontSize: "0.9em" }}>
+      {/* Footer */}
+      <p>
         Luciano's Lab
         <br />
         Spinning thing by <a href="https://cobe.vercel.app/">Cobe</a>
