@@ -1,4 +1,4 @@
-// ui6
+// ui6.2
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,7 +9,7 @@ import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
 function App() {
-  // keep original working refs and logic
+  // keep the original working data flow
   const canvasRef = useRef<HTMLCanvasElement>();
   const [counter, setCounter] = useState(0);
 
@@ -36,32 +36,28 @@ function App() {
   });
 
   useEffect(() => {
-    const prefersReduced =
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     let phi = 0;
 
     const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
       devicePixelRatio: 2,
-      width: 520 * 2, // larger than ui4, still fits mobile through CSS sizing
-      height: 520 * 2,
+      width: 400 * 2,
+      height: 400 * 2,
       phi: 0,
       theta: 0,
       dark: 1,
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 5,
-      baseColor: [0.12, 0.36, 0.72], // blue base that matches the glow
-      markerColor: [0.0, 0.9, 1.0],  // cyan markers
-      glowColor: [0.25, 0.65, 1.0],  // cyan glow thickness like ui5
+      // palette per request
+      baseColor: [0.043, 0.110, 0.165], // approx #0B1C2A
+      markerColor: [0.321, 0.698, 0.748], // approx #52B2BF
+      glowColor: [0.282, 0.666, 0.678],   // approx #48AAAD
       markers: [],
-      opacity: 0.85,
+      opacity: 0.9,
       onRender: (state) => {
         state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += prefersReduced ? 0.002 : 0.008; // ui5 rotation speed
+        phi += 0.008; // ui5 speed
       },
     });
 
@@ -70,132 +66,138 @@ function App() {
     };
   }, []);
 
-  // subtle gradient background, no noise, no top bar
-  const pageStyle: React.CSSProperties = {
+  // minimal styles in code to avoid touching CSS for this pass
+  const bgStyle: React.CSSProperties = {
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-start",
-    padding: "28px 16px 40px",
-    color: "rgba(255,255,255,0.92)",
+    padding: "28px 14px 40px",
     background:
-      "radial-gradient(900px 600px at 50% -10%, #0F1214 0%, rgba(15,18,20,0) 60%), linear-gradient(#0A0B0C, #0F1214)",
+      "radial-gradient(80% 60% at 50% 0%, #0F1214 0%, rgba(15,18,20,0.6) 60%, #0A0B0C 100%)",
+    color: "rgba(255,255,255,0.92)",
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
   };
 
   const headerWrap: React.CSSProperties = {
-    width: "100%",
-    maxWidth: 760,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
     textAlign: "center",
-    gap: 10,
-    marginBottom: 16,
+    marginBottom: 18,
   };
 
   const titleStyle: React.CSSProperties = {
     fontSize: 32,
+    lineHeight: 1.15,
     fontWeight: 800,
-    letterSpacing: 0.2,
     margin: 0,
-    textShadow: "0 2px 16px rgba(72,170,173,0.25)",
+    letterSpacing: 0.2,
   };
 
-  const chipStyle: React.CSSProperties = {
+  const counterPill: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
     padding: "6px 12px",
     borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.08)",
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.18)",
-    color: "rgba(255,255,255,0.86)",
+    color: "rgba(255,255,255,0.88)",
     fontSize: 15,
   };
 
-  const footerWrap: React.CSSProperties = {
-    marginTop: 18,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 10,
+  const canvasStyle: React.CSSProperties = {
+    width: "min(92vw, 560px)",
+    height: "auto",
+    aspectRatio: 1,
+    display: "block",
+    margin: "18px auto 0",
+    // subtle outer glow matching ui5 thickness
+    filter: "drop-shadow(0 0 40px rgba(72,170,173,0.35))",
   };
 
-  const subtlePill: React.CSSProperties = {
+  const backLinkStyle: React.CSSProperties = {
+    marginTop: 18,
     display: "inline-flex",
     alignItems: "center",
+    gap: 8,
     padding: "8px 12px",
     borderRadius: 999,
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-    background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.18)",
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    color: "#ffffff",
     textDecoration: "none",
-    transition: "background 180ms ease, outline-color 150ms ease",
-    outline: "2px solid transparent",
+    fontWeight: 600,
+    fontSize: 14,
+    transition: "background 180ms ease, border-color 180ms ease",
   };
 
-  const subtlePillHover = {
-    background: "linear-gradient(180deg, rgba(72,170,173,0.20), rgba(72,170,173,0.10))",
-    outlineColor: "color-mix(in oklab, white 45%, #48AAAD)",
-  } as React.CSSProperties;
+  const creditStyle: React.CSSProperties = {
+    marginTop: 10,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.05)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 13,
+  };
 
-  const setHover = (el: HTMLAnchorElement | null, on: boolean) => {
-    if (!el) return;
-    Object.assign(el.style, on ? subtlePillHover : {});
-    if (!on) {
-      el.style.background = "rgba(255,255,255,0.08)";
-      el.style.outlineColor = "transparent";
-    }
+  const linkAccent: React.CSSProperties = {
+    color: "#52B2BF",
+    textDecoration: "underline",
   };
 
   return (
-    <div style={pageStyle}>
+    <div style={bgStyle}>
       <div style={headerWrap}>
         <h1 style={titleStyle}>You are here.</h1>
-        <div style={chipStyle} aria-live="polite">
-          <b style={{ marginRight: 6 }}>{counter}</b>{" "}
-          {counter === 1 ? "person" : "people"} connected
+        <div style={counterPill} aria-live="polite">
+          <span>
+            <b>{counter}</b> {counter === 1 ? "person" : "people"} connected
+          </span>
         </div>
       </div>
 
-      {/* Globe, centered, no container behind it */}
+      {/* globe centered, no container behind it */}
       <canvas
         ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-        style={{
-          width: "min(92vw, 520px)", // larger than ui4, fits mobile
-          height: "auto",
-          aspectRatio: 1,
-          display: "block",
-          margin: "0 auto",
-        }}
+        style={canvasStyle}
       />
 
-      {/* Subtle controls under the globe */}
-      <div style={footerWrap}>
+      {/* subtle back link and credit, stacked close to globe */}
+      <a
+        href="https://narno.work"
+        target="_blank"
+        rel="noreferrer"
+        style={backLinkStyle}
+      >
+        ← Back to narno.work
+      </a>
+
+      <div style={creditStyle}>
+        <span>Luciano's Lab • Spinning thing by</span>
         <a
-          href="https://narno.work"
+          href="https://cobe.vercel.app/"
           target="_blank"
           rel="noreferrer"
-          style={subtlePill}
-          onMouseEnter={(e) => setHover(e.currentTarget, true)}
-          onMouseLeave={(e) => setHover(e.currentTarget, false)}
-          aria-label="Back to narno.work"
+          style={linkAccent}
         >
-          ← Back to narno.work
+          Cobe
         </a>
+      </div>
+    </div>
+  );
+}
 
-        <div style={{ ...subtlePill, fontSize: 13 }}>
-          Luciano's Lab • Spinning thing by{" "}
-          <a
-            href="https://cobe.vercel.app/"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              color: "#52
+createRoot(document.getElementById("root")!).render(<App />);
