@@ -1,4 +1,4 @@
-// ui7.2
+// ui7.3
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,7 +9,7 @@ import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
 function App() {
-  const canvasRef = useRef<HTMLCanvasElement>();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [counter, setCounter] = useState(0);
 
   const positions = useRef<
@@ -35,63 +35,64 @@ function App() {
   });
 
   useEffect(() => {
-    // Remove the top black band coming from styles.css
-    document.body.style.paddingTop = "0px";
-    document.body.style.background = "transparent";
+    // HARD override body to eliminate black band before paint
+    const cssReset = document.createElement("style");
+    cssReset.innerHTML = `
+      body {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow-x: hidden;
+      }
+    `;
+    document.head.appendChild(cssReset);
 
-    // Create the globe
     let phi = 0;
     const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
       devicePixelRatio: 2,
-      width: 400 * 2,
-      height: 400 * 2,
+      width: 800,
+      height: 800,
       phi: 0,
       theta: 0,
       dark: 1,
-      diffuse: 1.4,        // lift dots
+      diffuse: 1.5,
       mapSamples: 16000,
-      mapBrightness: 6.4,  // brighter dots, still balanced
-      baseColor: [0.10, 0.24, 0.36],     // ~ #193D5C
-      markerColor: [0.322, 0.698, 0.749],// ~ #52B2BF
-      glowColor: [0.282, 0.667, 0.678],  // exact #48AAAD
+      mapBrightness: 6.8, // slightly higher
+      baseColor: [0.117, 0.282, 0.423], // #1E486C
+      markerColor: [0.322, 0.698, 0.749], // #52B2BF
+      glowColor: [0.282, 0.667, 0.678],   // #48AAAD
       markers: [],
-      opacity: 0.88,
+      opacity: 0.9,
       onRender: (state) => {
         state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += 0.008; // ui5 speed
+        phi += 0.008;
       },
     });
 
     return () => {
       globe.destroy();
-      // do not leave overrides around if the app unmounts
-      document.body.style.paddingTop = "";
-      document.body.style.background = "";
+      cssReset.remove();
     };
   }, []);
 
-  // Tokens
   const TOK = {
-    text: "rgba(255,255,255,0.92)",
+    text: "rgba(255,255,255,0.94)",
     textWeak: "rgba(255,255,255,0.80)",
-    border: "rgba(255,255,255,0.18)",
+    border: "rgba(255,255,255,0.2)",
     pillBg: "rgba(255,255,255,0.06)",
-    creditBg: "rgba(255,255,255,0.05)",
+    creditBg: "rgba(255,255,255,0.04)",
     accent: "#48AAAD",
     secondary: "#52B2BF",
-    bgStart: "#0A0B0C",
-    bgMid: "#0F1214",
   } as const;
 
-  // Full-viewport gradient behind everything, covers any body padding
-  const fixedBg: React.CSSProperties = {
+  // Full gradient overlay, fixed to viewport
+  const gradientBG: React.CSSProperties = {
     position: "fixed",
     inset: 0,
-    zIndex: 0,
-    pointerEvents: "none",
     background:
-      `radial-gradient(1200px 820px at 50% 12%, ${TOK.bgMid} 0%, rgba(15,18,20,0.70) 58%, ${TOK.bgStart} 100%)`,
+      "radial-gradient(1200px 820px at 50% 10%, #0F1214 0%, rgba(15,18,20,0.75) 60%, #0A0B0C 100%)",
+    zIndex: 0,
   };
 
   const pageStyle: React.CSSProperties = {
@@ -101,34 +102,24 @@ function App() {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "flex-start",
-    padding: "18px 14px 40px",
-    color: TOK.text,
-    textRendering: "optimizeLegibility",
+    justifyContent: "center",
+    textAlign: "center",
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
-  };
-
-  const headerWrap: React.CSSProperties = {
-    textAlign: "center",
-    marginBottom: 10,
+    color: TOK.text,
   };
 
   const titleStyle: React.CSSProperties = {
     fontSize: 32,
-    lineHeight: 1.15,
     fontWeight: 800,
-    margin: 0,
-    letterSpacing: 0.2,
-    textShadow: "0 2px 18px rgba(72,170,173,0.20)",
+    marginBottom: 10,
+    textShadow: "0 2px 18px rgba(72,170,173,0.25)",
   };
 
-  const counterPill: React.CSSProperties = {
+  const pillStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    marginTop: 10,
     padding: "6px 12px",
     borderRadius: 999,
     border: `1px solid ${TOK.border}`,
@@ -137,121 +128,76 @@ function App() {
     WebkitBackdropFilter: "blur(12px)",
     color: TOK.text,
     fontSize: 15,
+    marginBottom: 25,
   };
 
-  // Guaranteed horizontal centering: wrapper + canvas margin auto
-  const globeRow: React.CSSProperties = {
-    width: "100%",
+  // Absolute centering with transform ensures pixel-perfect
+  const globeWrapper: React.CSSProperties = {
+    position: "relative",
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
   };
 
   const canvasStyle: React.CSSProperties = {
-    width: "clamp(320px, 82vw, 620px)",
+    width: "clamp(320px, 85vw, 620px)",
     height: "auto",
     aspectRatio: 1,
     display: "block",
-    margin: "20px auto 0", // explicit auto centering
+    margin: "0 auto",
     filter: "drop-shadow(0 0 44px rgba(72,170,173,0.35))",
   };
 
-  const backLinkStyle: React.CSSProperties = {
-    marginTop: 16,
+  const backBtn: React.CSSProperties = {
+    marginTop: 24,
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
-    padding: "8px 12px",
+    padding: "8px 14px",
     borderRadius: 999,
     border: `1px solid ${TOK.border}`,
     background: "rgba(255,255,255,0.04)",
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
-    color: "#ffffff",
-    textDecoration: "none",
-    fontWeight: 500,
+    color: "#fff",
     fontSize: 14,
-    outline: "2px solid transparent",
-    outlineOffset: 2,
-    transition:
-      "background 180ms ease, border-color 180ms ease, outline-color 180ms ease",
+    fontWeight: 500,
+    textDecoration: "none",
+    transition: "all 200ms ease",
   };
 
   const creditStyle: React.CSSProperties = {
     marginTop: 8,
+    fontSize: 13,
+    color: TOK.textWeak,
+    background: TOK.creditBg,
+    border: `1px solid ${TOK.border}`,
+    borderRadius: 999,
+    padding: "6px 10px",
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: `1px solid ${TOK.border}`,
-    background: TOK.creditBg,
     backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
-    color: TOK.textWeak,
-    fontSize: 13,
-  };
-
-  const linkAccent: React.CSSProperties = {
-    color: TOK.secondary,
-    textDecoration: "underline",
-  };
-
-  const onHover = (el: HTMLAnchorElement | null, on: boolean) => {
-    if (!el) return;
-    if (on) {
-      el.style.background =
-        "linear-gradient(180deg, rgba(72,170,173,0.16), rgba(72,170,173,0.08))";
-      el.style.outlineColor = "color-mix(in oklab, white 45%, #48AAAD)";
-      el.style.borderColor = "rgba(255,255,255,0.22)";
-    } else {
-      el.style.background = "rgba(255,255,255,0.04)";
-      el.style.outlineColor = "transparent";
-      el.style.borderColor = TOK.border;
-    }
   };
 
   return (
     <>
-      <div style={fixedBg} />
+      <div style={gradientBG} />
       <div style={pageStyle}>
-        <div style={headerWrap}>
-          <h1 style={titleStyle}>You are here.</h1>
-          <div style={counterPill} aria-live="polite">
-            <span>
-              <b>{counter}</b> {counter === 1 ? "person" : "people"} connected
-            </span>
-          </div>
+        <h1 style={titleStyle}>You are here.</h1>
+        <div style={pillStyle}>
+          <b>{counter}</b> {counter === 1 ? "person" : "people"} connected
         </div>
 
-        <div style={globeRow}>
-          <canvas
-            ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-            style={canvasStyle}
-          />
+        <div style={globeWrapper}>
+          <canvas ref={canvasRef as LegacyRef<HTMLCanvasElement>} style={canvasStyle} />
         </div>
 
-        <a
-          href="https://narno.work"
-          target="_blank"
-          rel="noreferrer"
-          style={backLinkStyle}
-          onMouseEnter={(e) => onHover(e.currentTarget, true)}
-          onMouseLeave={(e) => onHover(e.currentTarget, false)}
-          onFocus={(e) => onHover(e.currentTarget, true)}
-          onBlur={(e) => onHover(e.currentTarget, false)}
-        >
+        <a href="https://narno.work" target="_blank" rel="noreferrer" style={backBtn}>
           ← Go to narno.work
         </a>
 
         <div style={creditStyle}>
           <span>Luciano's Lab • Spinning thing by</span>
-          <a
-            href="https://cobe.vercel.app/"
-            target="_blank"
-            rel="noreferrer"
-            style={linkAccent}
-          >
+          <a href="https://cobe.vercel.app/" target="_blank" rel="noreferrer" style={{ color: TOK.secondary, textDecoration: "underline" }}>
             Cobe
           </a>
         </div>
