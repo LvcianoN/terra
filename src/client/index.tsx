@@ -1,4 +1,4 @@
-// ui7
+// ui7.2
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,7 +9,6 @@ import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
 function App() {
-  // keep original data flow
   const canvasRef = useRef<HTMLCanvasElement>();
   const [counter, setCounter] = useState(0);
 
@@ -36,8 +35,12 @@ function App() {
   });
 
   useEffect(() => {
-    let phi = 0;
+    // Remove the top black band coming from styles.css
+    document.body.style.paddingTop = "0px";
+    document.body.style.background = "transparent";
 
+    // Create the globe
+    let phi = 0;
     const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
       devicePixelRatio: 2,
       width: 400 * 2,
@@ -45,26 +48,30 @@ function App() {
       phi: 0,
       theta: 0,
       dark: 1,
-      diffuse: 1.35,         // lift dot contrast softly
+      diffuse: 1.4,        // lift dots
       mapSamples: 16000,
-      mapBrightness: 6.1,    // brighter dots without blowing glow
-      // tuned palette: deep blue base, secondary markers, precise teal glow
-      baseColor: [0.10, 0.24, 0.36],    // ~ #193D5C slightly brighter than before
-      markerColor: [0.322, 0.698, 0.749], // ~ #52B2BF
-      glowColor: [0.282, 0.667, 0.678],   // exact #48AAAD
+      mapBrightness: 6.4,  // brighter dots, still balanced
+      baseColor: [0.10, 0.24, 0.36],     // ~ #193D5C
+      markerColor: [0.322, 0.698, 0.749],// ~ #52B2BF
+      glowColor: [0.282, 0.667, 0.678],  // exact #48AAAD
       markers: [],
-      opacity: 0.88,         // keeps glow vivid, dots readable
+      opacity: 0.88,
       onRender: (state) => {
         state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += 0.008;        // ui5 speed
+        phi += 0.008; // ui5 speed
       },
     });
 
-    return () => globe.destroy();
+    return () => {
+      globe.destroy();
+      // do not leave overrides around if the app unmounts
+      document.body.style.paddingTop = "";
+      document.body.style.background = "";
+    };
   }, []);
 
-  // design tokens
+  // Tokens
   const TOK = {
     text: "rgba(255,255,255,0.92)",
     textWeak: "rgba(255,255,255,0.80)",
@@ -77,37 +84,34 @@ function App() {
     bgMid: "#0F1214",
   } as const;
 
-  // page background, gradient start moved down to remove top band
+  // Full-viewport gradient behind everything, covers any body padding
+  const fixedBg: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    zIndex: 0,
+    pointerEvents: "none",
+    background:
+      `radial-gradient(1200px 820px at 50% 12%, ${TOK.bgMid} 0%, rgba(15,18,20,0.70) 58%, ${TOK.bgStart} 100%)`,
+  };
+
   const pageStyle: React.CSSProperties = {
     position: "relative",
+    zIndex: 1,
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-start",
     padding: "18px 14px 40px",
-    background:
-      `radial-gradient(1100px 760px at 50% 10%, ${TOK.bgMid} 0%, rgba(15,18,20,0.68) 55%, ${TOK.bgStart} 100%)`,
     color: TOK.text,
     textRendering: "optimizeLegibility",
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
   };
 
-  // subtle top fade to eliminate any banding against browser chrome
-  const topFadeStyle: React.CSSProperties = {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 56,
-    pointerEvents: "none",
-    background: `linear-gradient(to bottom, ${TOK.bgMid} 0%, rgba(15,18,20,0.0) 100%)`,
-  };
-
   const headerWrap: React.CSSProperties = {
     textAlign: "center",
-    marginBottom: 10, // tighter stack
+    marginBottom: 10,
   };
 
   const titleStyle: React.CSSProperties = {
@@ -119,7 +123,6 @@ function App() {
     textShadow: "0 2px 18px rgba(72,170,173,0.20)",
   };
 
-  // pill with proper contrast
   const counterPill: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -136,24 +139,23 @@ function App() {
     fontSize: 15,
   };
 
-  // dedicated wrapper to force perfect horizontal centering
+  // Guaranteed horizontal centering: wrapper + canvas margin auto
   const globeRow: React.CSSProperties = {
     width: "100%",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center", // exact center horizontally
+    justifyContent: "center",
   };
 
   const canvasStyle: React.CSSProperties = {
-    width: "clamp(320px, 82vw, 620px)", // larger than ui4, still mobile safe
+    width: "clamp(320px, 82vw, 620px)",
     height: "auto",
     aspectRatio: 1,
     display: "block",
-    marginTop: 20,
-    filter: "drop-shadow(0 0 44px rgba(72,170,173,0.35))", // ui5 glow thickness
+    margin: "20px auto 0", // explicit auto centering
+    filter: "drop-shadow(0 0 44px rgba(72,170,173,0.35))",
   };
 
-  // low elevation back link
   const backLinkStyle: React.CSSProperties = {
     marginTop: 16,
     display: "inline-flex",
@@ -176,7 +178,7 @@ function App() {
   };
 
   const creditStyle: React.CSSProperties = {
-    marginTop: 8, // tighter link to footer
+    marginTop: 8,
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
@@ -195,7 +197,6 @@ function App() {
     textDecoration: "underline",
   };
 
-  // hover and focus polish
   const onHover = (el: HTMLAnchorElement | null, on: boolean) => {
     if (!el) return;
     if (on) {
@@ -211,50 +212,51 @@ function App() {
   };
 
   return (
-    <div style={pageStyle}>
-      <div style={topFadeStyle} />
-      <div style={headerWrap}>
-        <h1 style={titleStyle}>You are here.</h1>
-        <div style={counterPill} aria-live="polite">
-          <span>
-            <b>{counter}</b> {counter === 1 ? "person" : "people"} connected
-          </span>
+    <>
+      <div style={fixedBg} />
+      <div style={pageStyle}>
+        <div style={headerWrap}>
+          <h1 style={titleStyle}>You are here.</h1>
+          <div style={counterPill} aria-live="polite">
+            <span>
+              <b>{counter}</b> {counter === 1 ? "person" : "people"} connected
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* perfectly centered globe */}
-      <div style={globeRow}>
-        <canvas
-          ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-          style={canvasStyle}
-        />
-      </div>
+        <div style={globeRow}>
+          <canvas
+            ref={canvasRef as LegacyRef<HTMLCanvasElement>}
+            style={canvasStyle}
+          />
+        </div>
 
-      <a
-        href="https://narno.work"
-        target="_blank"
-        rel="noreferrer"
-        style={backLinkStyle}
-        onMouseEnter={(e) => onHover(e.currentTarget, true)}
-        onMouseLeave={(e) => onHover(e.currentTarget, false)}
-        onFocus={(e) => onHover(e.currentTarget, true)}
-        onBlur={(e) => onHover(e.currentTarget, false)}
-      >
-        ← Back to narno.work
-      </a>
-
-      <div style={creditStyle}>
-        <span>Luciano's Lab • Spinning thing by</span>
         <a
-          href="https://cobe.vercel.app/"
+          href="https://narno.work"
           target="_blank"
           rel="noreferrer"
-          style={linkAccent}
+          style={backLinkStyle}
+          onMouseEnter={(e) => onHover(e.currentTarget, true)}
+          onMouseLeave={(e) => onHover(e.currentTarget, false)}
+          onFocus={(e) => onHover(e.currentTarget, true)}
+          onBlur={(e) => onHover(e.currentTarget, false)}
         >
-          Cobe
+          ← Go to narno.work
         </a>
+
+        <div style={creditStyle}>
+          <span>Luciano's Lab • Spinning thing by</span>
+          <a
+            href="https://cobe.vercel.app/"
+            target="_blank"
+            rel="noreferrer"
+            style={linkAccent}
+          >
+            Cobe
+          </a>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
