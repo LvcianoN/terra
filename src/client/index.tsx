@@ -1,4 +1,4 @@
-// ui5
+// ui6
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -36,7 +36,6 @@ function App() {
   });
 
   useEffect(() => {
-    // rotation respects reduced motion
     const prefersReduced =
       typeof window !== "undefined" &&
       window.matchMedia &&
@@ -46,23 +45,23 @@ function App() {
 
     const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
       devicePixelRatio: 2,
-      width: 400 * 2,
-      height: 400 * 2,
+      width: 520 * 2, // larger than ui4, still fits mobile through CSS sizing
+      height: 520 * 2,
       phi: 0,
       theta: 0,
       dark: 1,
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 5,
-      baseColor: [0.12, 0.36, 0.72], // rich blue base
+      baseColor: [0.12, 0.36, 0.72], // blue base that matches the glow
       markerColor: [0.0, 0.9, 1.0],  // cyan markers
-      glowColor: [0.25, 0.65, 1.0],  // cyan glow
+      glowColor: [0.25, 0.65, 1.0],  // cyan glow thickness like ui5
       markers: [],
       opacity: 0.85,
       onRender: (state) => {
         state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += prefersReduced ? 0.002 : 0.008;
+        phi += prefersReduced ? 0.002 : 0.008; // ui5 rotation speed
       },
     });
 
@@ -71,207 +70,132 @@ function App() {
     };
   }, []);
 
-  // inline styles to achieve the requested “glass” look without touching CSS
-  const tokens = {
-    primary: "#48AAAD",
-    accentDark: "#016064",
-    secondary: "#52B2BF",
-
-    bgStart: "#0A0B0C",
-    bgEnd: "#0F1214",
-
-    glassFill: "rgba(255,255,255,0.14)",
-    glassBorder: "rgba(255,255,255,0.35)",
-    glassBlur: "24px",
-
-    radiusXL: 24,
-    radiusLG: 16,
-    shadow1: "0 8px 24px rgba(0,0,0,0.12)",
-  } as const;
-
+  // subtle gradient background, no noise, no top bar
   const pageStyle: React.CSSProperties = {
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-start",
-    padding: "32px 16px 48px",
+    padding: "28px 16px 40px",
     color: "rgba(255,255,255,0.92)",
-    background: `radial-gradient(1200px 800px at 50% -10%, ${tokens.bgEnd}, transparent 60%), linear-gradient(${tokens.bgStart}, ${tokens.bgEnd})`,
+    background:
+      "radial-gradient(900px 600px at 50% -10%, #0F1214 0%, rgba(15,18,20,0) 60%), linear-gradient(#0A0B0C, #0F1214)",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
   };
 
   const headerWrap: React.CSSProperties = {
     width: "100%",
-    maxWidth: 640,
+    maxWidth: 760,
     display: "flex",
     flexDirection: "column",
-    gap: 12,
     alignItems: "center",
     textAlign: "center",
+    gap: 10,
     marginBottom: 16,
   };
 
   const titleStyle: React.CSSProperties = {
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
     fontSize: 32,
-    lineHeight: 1.15,
-    letterSpacing: 0.2,
     fontWeight: 800,
+    letterSpacing: 0.2,
     margin: 0,
-    textShadow: "0 2px 18px rgba(72,170,173,0.25)",
+    textShadow: "0 2px 16px rgba(72,170,173,0.25)",
   };
 
   const chipStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
     padding: "6px 12px",
     borderRadius: 999,
-    backdropFilter: `blur(${tokens.glassBlur})`,
-    WebkitBackdropFilter: `blur(${tokens.glassBlur})`,
-    background:
-      "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 60%)",
-    border: `1px solid ${tokens.glassBorder}`,
-    boxShadow: tokens.shadow1,
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.18)",
     color: "rgba(255,255,255,0.86)",
     fontSize: 15,
   };
 
-  const globeCard: React.CSSProperties = {
-    position: "relative",
-    width: "min(92vw, 520px)",
-    borderRadius: tokens.radiusXL,
-    padding: 20,
-    marginTop: 12,
-    backdropFilter: `blur(${tokens.glassBlur})`,
-    WebkitBackdropFilter: `blur(${tokens.glassBlur})`,
-    background: "rgba(255,255,255,0.10)",
-    border: `1px solid ${tokens.glassBorder}`,
-    boxShadow: tokens.shadow1,
-  };
-
-  // soft ring glow around the card
-  const ring: React.CSSProperties = {
-    position: "absolute",
-    inset: -2,
-    borderRadius: tokens.radiusXL + 2,
-    pointerEvents: "none",
-    boxShadow: `0 0 0 1px rgba(255,255,255,0.18) inset, 0 0 60px 8px rgba(72,170,173,0.40)`,
-  };
-
   const footerWrap: React.CSSProperties = {
-    marginTop: 28,
+    marginTop: 18,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   };
 
-  const pill: React.CSSProperties = {
+  const subtlePill: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
-    padding: "6px 12px",
+    padding: "8px 12px",
     borderRadius: 999,
-    backdropFilter: `blur(${tokens.glassBlur})`,
-    WebkitBackdropFilter: `blur(${tokens.glassBlur})`,
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
     background: "rgba(255,255,255,0.08)",
-    border: `1px solid ${tokens.glassBorder}`,
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 13,
-  };
-
-  const linkBtn: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "10px 14px",
-    borderRadius: tokens.radiusLG,
-    border: `1px solid rgba(255,255,255,0.22)`,
-    background:
-      "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 100%)",
-    color: "#fff",
-    fontWeight: 600,
+    border: "1px solid rgba(255,255,255,0.18)",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
     textDecoration: "none",
+    transition: "background 180ms ease, outline-color 150ms ease",
     outline: "2px solid transparent",
-    transition: "transform 180ms ease, background 180ms ease, outline-color 150ms ease",
   };
 
-  const linkBtnHover: React.CSSProperties = {
-    background:
-      "linear-gradient(180deg, rgba(72,170,173,0.25) 0%, rgba(72,170,173,0.12) 100%)",
+  const subtlePillHover = {
+    background: "linear-gradient(180deg, rgba(72,170,173,0.20), rgba(72,170,173,0.10))",
     outlineColor: "color-mix(in oklab, white 45%, #48AAAD)",
-  };
+  } as React.CSSProperties;
 
-  // small helper for hover effect without external CSS
   const setHover = (el: HTMLAnchorElement | null, on: boolean) => {
     if (!el) return;
-    Object.assign(el.style, on ? linkBtnHover : {});
+    Object.assign(el.style, on ? subtlePillHover : {});
     if (!on) {
-      // reset inline styles we changed
-      el.style.background =
-        "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 100%)";
+      el.style.background = "rgba(255,255,255,0.08)";
       el.style.outlineColor = "transparent";
     }
   };
 
   return (
     <div style={pageStyle}>
-      {/* Header + chip */}
       <div style={headerWrap}>
-        <h1 style={titleStyle}>Where's everyone at?</h1>
+        <h1 style={titleStyle}>You are here.</h1>
         <div style={chipStyle} aria-live="polite">
-          <span>
-            <b>{counter}</b> {counter === 1 ? "person" : "people"} connected
-          </span>
+          <b style={{ marginRight: 6 }}>{counter}</b>{" "}
+          {counter === 1 ? "person" : "people"} connected
         </div>
       </div>
 
-      {/* Glass card with soft ring glow */}
-      <div style={globeCard} role="region" aria-label="Live globe">
-        <div style={ring} />
-        <canvas
-          ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-          style={{
-            width: "100%",
-            height: "auto",
-            maxWidth: 480,
-            aspectRatio: 1,
-            display: "block",
-            margin: "0 auto",
-          }}
-        />
-      </div>
+      {/* Globe, centered, no container behind it */}
+      <canvas
+        ref={canvasRef as LegacyRef<HTMLCanvasElement>}
+        style={{
+          width: "min(92vw, 520px)", // larger than ui4, fits mobile
+          height: "auto",
+          aspectRatio: 1,
+          display: "block",
+          margin: "0 auto",
+        }}
+      />
 
-      {/* Footer area with nav button and credit pill */}
+      {/* Subtle controls under the globe */}
       <div style={footerWrap}>
         <a
           href="https://narno.work"
           target="_blank"
           rel="noreferrer"
-          aria-label="Back to narno.work"
-          style={linkBtn}
+          style={subtlePill}
           onMouseEnter={(e) => setHover(e.currentTarget, true)}
           onMouseLeave={(e) => setHover(e.currentTarget, false)}
+          aria-label="Back to narno.work"
         >
           ← Back to narno.work
         </a>
 
-        <div style={pill}>
-          <span>Luciano's Lab • Spinning thing by&nbsp;</span>
+        <div style={{ ...subtlePill, fontSize: 13 }}>
+          Luciano's Lab • Spinning thing by{" "}
           <a
             href="https://cobe.vercel.app/"
             target="_blank"
             rel="noreferrer"
-            style={{ color: tokens.secondary, textDecoration: "underline" }}
-          >
-            Cobe
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-createRoot(document.getElementById("root")!).render(<App />);
+            style={{
+              color: "#52
