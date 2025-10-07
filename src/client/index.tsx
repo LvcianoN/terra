@@ -1,4 +1,4 @@
-// ui6.2
+// ui6.3
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,7 +9,7 @@ import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
 function App() {
-  // keep the original working data flow
+  // original working data flow
   const canvasRef = useRef<HTMLCanvasElement>();
   const [counter, setCounter] = useState(0);
 
@@ -17,7 +17,7 @@ function App() {
     Map<string, { location: [number, number]; size: number }>
   >(new Map());
 
-  const socket = usePartySocket({
+  usePartySocket({
     room: "default",
     party: "globe",
     onMessage(evt) {
@@ -25,7 +25,7 @@ function App() {
       if (message.type === "add-marker") {
         positions.current.set(message.position.id, {
           location: [message.position.lat, message.position.lng],
-          size: message.position.id === socket.id ? 0.1 : 0.05,
+          size: message.position.id === (message as any).id ? 0.1 : 0.05,
         });
         setCounter((c) => c + 1);
       } else {
@@ -47,43 +47,57 @@ function App() {
       dark: 1,
       diffuse: 1.2,
       mapSamples: 16000,
-      mapBrightness: 5,
-      // palette per request
-      baseColor: [0.043, 0.110, 0.165], // approx #0B1C2A
-      markerColor: [0.321, 0.698, 0.748], // approx #52B2BF
-      glowColor: [0.282, 0.666, 0.678],   // approx #48AAAD
+      // 5) dot visibility bump
+      mapBrightness: 5.6,
+      // 3 & 6) palette tune: deep base, secondary markers, precise primary glow
+      baseColor: [0.043, 0.110, 0.165],  // ~ #0B1C2A
+      markerColor: [0.322, 0.698, 0.749], // ~ #52B2BF
+      glowColor: [0.282, 0.667, 0.678],   // ~ #48AAAD
       markers: [],
-      opacity: 0.9,
+      // 5) balance overall light
+      opacity: 0.85,
       onRender: (state) => {
         state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += 0.008; // ui5 speed
+        // 7) ui5 rotation speed kept
+        phi += 0.008;
       },
     });
 
-    return () => {
-      globe.destroy();
-    };
+    return () => globe.destroy();
   }, []);
 
-  // minimal styles in code to avoid touching CSS for this pass
-  const bgStyle: React.CSSProperties = {
+  // tokens
+  const COLORS = {
+    text: "rgba(255,255,255,0.92)",
+    textWeak: "rgba(255,255,255,0.80)",
+    border: "rgba(255,255,255,0.18)",
+    pillBg: "rgba(255,255,255,0.06)",     // 2) darker pill for contrast
+    creditBg: "rgba(255,255,255,0.05)",
+    accent: "#48AAAD",
+    secondary: "#52B2BF",
+  } as const;
+
+  // 2 & 7) background gradient, no noise, no top bar artifact
+  const pageStyle: React.CSSProperties = {
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    // 1) shift stack slightly upward
     justifyContent: "flex-start",
-    padding: "28px 14px 40px",
+    padding: "20px 14px 40px",
     background:
-      "radial-gradient(80% 60% at 50% 0%, #0F1214 0%, rgba(15,18,20,0.6) 60%, #0A0B0C 100%)",
-    color: "rgba(255,255,255,0.92)",
+      "radial-gradient(1000px 700px at 50% 6%, #0F1214 0%, rgba(15,18,20,0.66) 55%, #0A0B0C 100%)",
+    color: COLORS.text,
+    textRendering: "optimizeLegibility",
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
   };
 
   const headerWrap: React.CSSProperties = {
     textAlign: "center",
-    marginBottom: 18,
+    marginBottom: 14, // 1) tighter spacing
   };
 
   const titleStyle: React.CSSProperties = {
@@ -92,8 +106,10 @@ function App() {
     fontWeight: 800,
     margin: 0,
     letterSpacing: 0.2,
+    textShadow: "0 2px 18px rgba(72,170,173,0.22)",
   };
 
+  // 2) pill contrast & polish
   const counterPill: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -102,64 +118,91 @@ function App() {
     marginTop: 10,
     padding: "6px 12px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.08)",
+    border: `1px solid ${COLORS.border}`,
+    background: COLORS.pillBg,
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
-    color: "rgba(255,255,255,0.88)",
+    color: COLORS.text, // stronger text
     fontSize: 15,
   };
 
+  // 0) globe centering guarantee: use a grid wrapper that centers content
+  const globeWrap: React.CSSProperties = {
+    width: "100%",
+    display: "grid",
+    placeItems: "center", // horizontal AND vertical centering within area
+  };
+
   const canvasStyle: React.CSSProperties = {
-    width: "min(92vw, 560px)",
+    // bigger than ui4 but mobile-safe
+    width: "min(92vw, 580px)",
     height: "auto",
     aspectRatio: 1,
     display: "block",
-    margin: "18px auto 0",
-    // subtle outer glow matching ui5 thickness
-    filter: "drop-shadow(0 0 40px rgba(72,170,173,0.35))",
+    margin: "16px auto 0",
+    // 6 & 10) glow thickness/hue per ui5
+    filter: "drop-shadow(0 0 44px rgba(72,170,173,0.35))",
   };
 
+  // 3 & 5) back link low-elevation, blends until hover
   const backLinkStyle: React.CSSProperties = {
-    marginTop: 18,
+    marginTop: 16,
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
     padding: "8px 12px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.06)",
+    border: `1px solid ${COLORS.border}`,
+    background: "rgba(255,255,255,0.05)",
     backdropFilter: "blur(10px)",
     WebkitBackdropFilter: "blur(10px)",
     color: "#ffffff",
     textDecoration: "none",
-    fontWeight: 600,
+    fontWeight: 500, // reduced from 600
     fontSize: 14,
-    transition: "background 180ms ease, border-color 180ms ease",
+    outline: "2px solid transparent",
+    outlineOffset: 2, // 8) focus comfort
+    transition:
+      "background 180ms ease, border-color 180ms ease, outline-color 180ms ease",
   };
 
   const creditStyle: React.CSSProperties = {
-    marginTop: 10,
+    // 4) pull closer to the back link
+    marginTop: 8,
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
     padding: "6px 10px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.05)",
+    border: `1px solid ${COLORS.border}`,
+    background: COLORS.creditBg,
     backdropFilter: "blur(8px)",
     WebkitBackdropFilter: "blur(8px)",
-    color: "rgba(255,255,255,0.8)",
+    color: COLORS.textWeak,
     fontSize: 13,
   };
 
   const linkAccent: React.CSSProperties = {
-    color: "#52B2BF",
+    color: COLORS.secondary,
     textDecoration: "underline",
   };
 
+  // simple hover/focus enhancement
+  const onHover = (el: HTMLAnchorElement | null, on: boolean) => {
+    if (!el) return;
+    if (on) {
+      el.style.background = "linear-gradient(180deg, rgba(72,170,173,0.18), rgba(72,170,173,0.10))";
+      el.style.outlineColor = "color-mix(in oklab, white 45%, #48AAAD)";
+      el.style.borderColor = "rgba(255,255,255,0.22)";
+    } else {
+      el.style.background = "rgba(255,255,255,0.05)";
+      el.style.outlineColor = "transparent";
+      el.style.borderColor = COLORS.border;
+    }
+  };
+
   return (
-    <div style={bgStyle}>
+    <div style={pageStyle}>
       <div style={headerWrap}>
         <h1 style={titleStyle}>You are here.</h1>
         <div style={counterPill} aria-live="polite">
@@ -169,18 +212,23 @@ function App() {
         </div>
       </div>
 
-      {/* globe centered, no container behind it */}
-      <canvas
-        ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-        style={canvasStyle}
-      />
+      {/* 0) globe perfectly centered */}
+      <div style={globeWrap}>
+        <canvas
+          ref={canvasRef as LegacyRef<HTMLCanvasElement>}
+          style={canvasStyle}
+        />
+      </div>
 
-      {/* subtle back link and credit, stacked close to globe */}
       <a
         href="https://narno.work"
         target="_blank"
         rel="noreferrer"
         style={backLinkStyle}
+        onMouseEnter={(e) => onHover(e.currentTarget, true)}
+        onMouseLeave={(e) => onHover(e.currentTarget, false)}
+        onFocus={(e) => onHover(e.currentTarget, true)}
+        onBlur={(e) => onHover(e.currentTarget, false)}
       >
         ← Back to narno.work
       </a>
