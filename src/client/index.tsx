@@ -1,4 +1,4 @@
-// ui8 — minimal, same geometry/centering as ui4
+// ui8.1 — revert to ui4 geometry, minimal fixes only
 import "./styles.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,7 +9,6 @@ import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
 function App() {
-  // keep ui4’s simple centering behavior
   const canvasRef = useRef<HTMLCanvasElement>();
   const [counter, setCounter] = useState(0);
 
@@ -38,7 +37,6 @@ function App() {
   useEffect(() => {
     let phi = 0;
 
-    // same dimensions as ui4, just brighter palette
     const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
       devicePixelRatio: 2,
       width: 400 * 2,
@@ -48,16 +46,16 @@ function App() {
       dark: 1,
       diffuse: 1.3,
       mapSamples: 16000,
-      mapBrightness: 6.2,                 // brighter dots
+      mapBrightness: 6.2,
       baseColor: [0.117, 0.282, 0.423],   // deep blue
-      markerColor: [0.322, 0.698, 0.749], // teal
+      markerColor: [0.322, 0.698, 0.749], // teal markers
       glowColor: [0.282, 0.667, 0.678],   // teal halo
       markers: [],
       opacity: 0.88,
       onRender: (state) => {
         state.markers = Array.from(positions.current.values());
         state.phi = phi;
-        phi += 0.008;                     // speed you liked
+        phi += 0.008;
       },
     });
 
@@ -68,26 +66,27 @@ function App() {
     <div className="App">
       <h1>You are here.</h1>
 
-      {/* explicit gap so “1 person” never jams */}
-      <p style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+      {/* shrink-to-fit block centered; fixed gap so "1 person" never jams */}
+      <p style={{ width: "max-content", margin: "0 auto 10px" }}>
         <b>{counter}</b>
-        <span>{counter === 1 ? "person" : "people"} connected.</span>
+        <span style={{ marginLeft: 6 }}>
+          {counter === 1 ? "person" : "people"} connected.
+        </span>
       </p>
 
-      {/* canvas centered by the same simple flow as ui4 */}
+      {/* canvas centered exactly like ui4 via simple flow */}
       <canvas
         ref={canvasRef as LegacyRef<HTMLCanvasElement>}
         style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
       />
 
-      {/* small link above footer, minimal styling */}
+      {/* minimal link, no buttons, no extra chrome */}
       <p style={{ marginTop: 10 }}>
         <a href="https://narno.work" target="_blank" rel="noreferrer">
           Go to narno.work
         </a>
       </p>
 
-      {/* footer credit */}
       <p>
         Luciano's Lab
         <br />
